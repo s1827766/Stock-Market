@@ -30,10 +30,8 @@ class MeanReversionBot:
         self.last_reset_date = datetime.now().date()
 
         # Alpaca API setup
-        self.api_key = os.environ.get('APCA_API_KEY_ID')
-        self.secret_key = os.environ.get('APCA_API_SECRET_KEY')
-        if not self.api_key or not self.secret_key:
-            raise ValueError("Alpaca API key and secret must be set in environment variables APCA_API_KEY_ID and APCA_API_SECRET_KEY")
+        self.api_key = 'PKNO5VEJ24CF4CVQVG5HIUW5PK'  # Replace with your actual Alpaca API key
+        self.secret_key = 'HgubJ4BrgrL8H8z5XaACcmeo9KYmdEihjh4sJ7sBrRgZ'  # Replace with your actual Alpaca API secret
         
         base_url = "https://paper-api.alpaca.markets" if paper else "https://api.alpaca.markets"
         self.trading_client = TradingClient(self.api_key, self.secret_key, paper=paper, url_override=base_url)
@@ -119,3 +117,4 @@ if __name__ == "__main__":
     decision = bot.trade_decision()
     print(decision)
     print(f"Shares held: {bot.shares_held}")
+    
