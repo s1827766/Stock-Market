@@ -1,21 +1,34 @@
 from datetime import datetime, timedelta
 import os
+from dotenv import load_dotenv
+
+# Load .env file
+load_dotenv()
+
 from alpaca.trading.client import TradingClient
 from alpaca.trading.requests import MarketOrderRequest
 from alpaca.trading.enums import OrderSide, TimeInForce
+from alpaca.data.historical import StockHistoricalDataClient
+from alpaca.data.requests import StockBarsRequest
+from alpaca.data.timeframe import TimeFrame
+
 
 class MeanReversionBot:
     """
-    Mean reversion stock trading bot with Alpaca API integration and risk management.
-
-    Features:
-    - Calculates mean price over a specified history period
-    - Trades when price deviates beyond a threshold from the mean
-    - Risk management: position caps, daily trade limits, throttling (cooldown between trades)
-    - Integrates with Alpaca for live/paper trading
+    Mean reversion stock trading bot using Alpaca API.
+    Loads API keys from environment variables for safety.
     """
 
-    def __init__(self, symbol='AAPL', history=100, limit=0.02, max_shares=100, daily_trade_limit=5, cooldown_hours=24, paper=True):
+    def __init__(
+        self,
+        symbol='DIS',
+        history=100,
+        limit=0.02,
+        max_shares=100,
+        daily_trade_limit=5,
+        cooldown_hours=24,
+        paper=True
+    ):
         self.symbol = symbol
         self.history = history
         self.limit = limit
@@ -23,21 +36,30 @@ class MeanReversionBot:
         self.daily_trade_limit = daily_trade_limit
         self.cooldown_hours = cooldown_hours
         self.paper = paper
+
         self.prices = []
         self.shares_held = 0
         self.last_trade_time = None
         self.daily_trades = 0
         self.last_reset_date = datetime.now().date()
 
-        # Alpaca API setup
-        self.api_key = 'PKNO5VEJ24CF4CVQVG5HIUW5PK'  # Replace with your actual Alpaca API key
-        self.secret_key = 'HgubJ4BrgrL8H8z5XaACcmeo9KYmdEihjh4sJ7sBrRgZ'  # Replace with your actual Alpaca API secret
-        
+        # Load API keys from .env
+        self.api_key = os.getenv("API_KEY")
+        self.secret_key = os.getenv("API_SECRET")
+
+        if not self.api_key or not self.secret_key:
+            raise ValueError("Missing API_KEY or API_SECRET in .env file")
+
         base_url = "https://paper-api.alpaca.markets" if paper else "https://api.alpaca.markets"
-        self.trading_client = TradingClient(self.api_key, self.secret_key, paper=paper, url_override=base_url)
+
+        self.trading_client = TradingClient(
+            self.api_key,
+            self.secret_key,
+            paper=paper,
+            url_override=base_url
+        )
 
     def add_price(self, price):
-        """Add a new price to the history and reset daily trades if new day."""
         self.prices.append(price)
         today = datetime.now().date()
         if self.last_reset_date != today:
@@ -45,7 +67,6 @@ class MeanReversionBot:
             self.last_reset_date = today
 
     def can_trade(self):
-        """Check if trading is allowed based on limits and cooldown."""
         if self.daily_trades >= self.daily_trade_limit:
             return False
         if self.last_trade_time:
@@ -54,67 +75,66 @@ class MeanReversionBot:
         return True
 
     def execute_trade(self, side, qty):
-        """Execute a trade via Alpaca API."""
         order_request = MarketOrderRequest(
             symbol=self.symbol,
             qty=qty,
             side=side,
             time_in_force=TimeInForce.DAY
         )
-        order = self.trading_client.submit_order(order_request)
-        return order
+        return self.trading_client.submit_order(order_request)
 
     def trade_decision(self):
-        """Make a trading decision based on current prices and risk management."""
         if len(self.prices) < self.history:
             return "Not enough data"
         if not self.can_trade():
             return "Throttled or daily limit reached"
 
-        # Calculate mean price
         mean_price = sum(self.prices[-self.history:]) / self.history
         current_price = self.prices[-1]
         deviation = (current_price - mean_price) / mean_price
 
-        # Trading rules
         if deviation < -self.limit and self.shares_held == 0:
-            # BUY
             try:
                 order = self.execute_trade(OrderSide.BUY, self.max_shares)
                 self.shares_held = self.max_shares
                 self.last_trade_time = datetime.now()
                 self.daily_trades += 1
-                return f"BUY {self.max_shares} shares (price below mean) - Order ID: {order.id}"
+                return f"BUY {self.max_shares} shares - Order ID: {order.id}"
             except Exception as e:
                 return f"BUY failed: {str(e)}"
+
         elif deviation > self.limit and self.shares_held > 0:
-            # SELL
             try:
                 order = self.execute_trade(OrderSide.SELL, self.shares_held)
-                shares_to_sell = self.shares_held
+                sold = self.shares_held
                 self.shares_held = 0
                 self.last_trade_time = datetime.now()
                 self.daily_trades += 1
-                return f"SELL {shares_to_sell} shares (price above mean) - Order ID: {order.id}"
+                return f"SELL {sold} shares - Order ID: {order.id}"
             except Exception as e:
                 return f"SELL failed: {str(e)}"
-        else:
-            return "HOLD (price near mean)"
 
-# Example usage
+        return "HOLD (price near mean)"
+
+
 if __name__ == "__main__":
-    # Set environment variables before running (e.g., in command prompt):
-    # set APCA_API_KEY_ID=your_api_key
-    # set APCA_API_SECRET_KEY=your_secret_key
-    
-    bot = MeanReversionBot(paper=True)  # Use paper=True for testing
+    symbol = "DIS"
+    bot = MeanReversionBot(symbol=symbol, paper=True)
 
-    # Simulate adding prices (replace with real data feed, e.g., from Alpaca or Yahoo Finance)
-    for i in range(110):
-        price = 100 + i * 0.1  # Example increasing prices
-        bot.add_price(price)
+    data_client = StockHistoricalDataClient(bot.api_key, bot.secret_key)
+
+    request = StockBarsRequest(
+        symbol_or_symbols=symbol,
+        timeframe=TimeFrame.Day,
+        start=datetime.now() - timedelta(days=120),
+        end=datetime.now()
+    )
+
+    bars = data_client.get_stock_bars(request)
+
+    for bar in bars[symbol]:
+        bot.add_price(bar.close)
 
     decision = bot.trade_decision()
     print(decision)
     print(f"Shares held: {bot.shares_held}")
-    
