@@ -44,11 +44,11 @@ class MeanReversionBot:
         self.last_reset_date = datetime.now().date()
 
         # Load API keys from .env
-        self.api_key = os.getenv("API_KEY")
-        self.secret_key = os.getenv("API_SECRET")
+        self.api_key = os.getenv("ALPACA_API_KEY")
+        self.secret_key = os.getenv("ALPACA_SECRET_KEY")
 
         if not self.api_key or not self.secret_key:
-            raise ValueError("Missing API_KEY or API_SECRET in .env file")
+            raise ValueError("Missing ALPACA_API_KEY or ALPACA_SECRET_KEY in environment variables")
 
         base_url = "https://paper-api.alpaca.markets" if paper else "https://api.alpaca.markets"
 

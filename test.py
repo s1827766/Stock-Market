@@ -15,8 +15,8 @@ symbol = "DIS"
 bot = MeanReversionBot(symbol=symbol, paper=True)
 
 data_client = StockHistoricalDataClient(
-    os.getenv("API_KEY"),
-    os.getenv("API_SECRET")
+    os.getenv("ALPACA_API_KEY"),
+    os.getenv("ALPACA_SECRET_KEY")
 )
 
 request = StockBarsRequest(
