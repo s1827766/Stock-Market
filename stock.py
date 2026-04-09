@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 import os
 from dotenv import load_dotenv
 
-# Load environment variables
+# Load environment variables from .env (locally; in GitHub Actions they come from secrets)
 load_dotenv()
 
 from alpaca.trading.client import TradingClient
@@ -17,8 +17,8 @@ from alpaca.data.enums import DataFeed
 
 class MeanReversionBot:
     """
-    A simple mean reversion trading bot using Alpaca.
-    Uses IEX data (free) to avoid SIP subscription errors.
+    Simple mean reversion trading bot using Alpaca.
+    Uses IEX data to avoid SIP subscription issues.
     """
 
     def __init__(
@@ -58,14 +58,13 @@ class MeanReversionBot:
             paper=paper
         )
 
-        # Data client (IEX feed to avoid SIP errors)
+        # Data client (no feed arg here; feed is set on the request)
         self.data_client = StockHistoricalDataClient(
             self.api_key,
-            self.secret_key,
-            feed=DataFeed.IEX
+            self.secret_key
         )
 
-    def add_price(self, price):
+    def add_price(self, price: float):
         self.prices.append(price)
 
         # Reset daily trade count at midnight
@@ -74,7 +73,7 @@ class MeanReversionBot:
             self.daily_trades = 0
             self.last_reset_date = today
 
-    def can_trade(self):
+    def can_trade(self) -> bool:
         if self.daily_trades >= self.daily_trade_limit:
             return False
         if self.last_trade_time:
@@ -82,7 +81,7 @@ class MeanReversionBot:
                 return False
         return True
 
-    def execute_trade(self, side, qty):
+    def execute_trade(self, side: OrderSide, qty: int):
         order = MarketOrderRequest(
             symbol=self.symbol,
             qty=qty,
@@ -91,7 +90,7 @@ class MeanReversionBot:
         )
         return self.trading_client.submit_order(order)
 
-    def trade_decision(self):
+    def trade_decision(self) -> str:
         if len(self.prices) < self.history:
             return "Not enough data"
 
@@ -102,7 +101,7 @@ class MeanReversionBot:
         current_price = self.prices[-1]
         deviation = (current_price - mean_price) / mean_price
 
-        # BUY
+        # BUY: price significantly below mean, no position
         if deviation < -self.limit and self.shares_held == 0:
             try:
                 order = self.execute_trade(OrderSide.BUY, self.max_shares)
@@ -113,7 +112,7 @@ class MeanReversionBot:
             except Exception as e:
                 return f"BUY failed: {e}"
 
-        # SELL
+        # SELL: price significantly above mean, currently holding
         if deviation > self.limit and self.shares_held > 0:
             try:
                 order = self.execute_trade(OrderSide.SELL, self.shares_held)
@@ -127,22 +126,28 @@ class MeanReversionBot:
 
         return "HOLD"
 
-    def load_recent_prices(self, days=120):
+    def load_recent_prices(self, days: int = 120):
+        # Use IEX feed here to avoid SIP subscription errors
         request = StockBarsRequest(
             symbol_or_symbols=self.symbol,
             timeframe=TimeFrame.Day,
             start=datetime.now() - timedelta(days=days),
-            end=datetime.now()
+            end=datetime.now(),
+            feed=DataFeed.IEX
         )
 
         bars = self.data_client.get_stock_bars(request)
+
+        # bars is a dict-like keyed by symbol
         for bar in bars[self.symbol]:
             self.add_price(bar.close)
 
 
 if __name__ == "__main__":
-    bot = MeanReversionBot(symbol="DIS", paper=True)
-    bot.load_recent_prices()
+    symbol = "DIS"
+    bot = MeanReversionBot(symbol=symbol, paper=True)
+
+    bot.load_recent_prices(days=120)
 
     decision = bot.trade_decision()
     print(decision)
