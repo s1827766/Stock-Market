@@ -151,7 +151,7 @@ class MeanReversionBot:
 
 if __name__ == "__main__":
     # Add as many symbols as you want
-    symbols = ["DIS", "AAPL", "MSFT", "TSLA"]
+    symbols = ["DIS", "IVZ", "MSFT", "WMT"]
 
     for symbol in symbols:
         print(f"\n=== Running bot for {symbol} ===")
