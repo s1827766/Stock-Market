@@ -58,6 +58,12 @@ class MeanReversionBot:
             paper=paper
         )
 
+        try:
+            position = self.trading_client.get_open_position(self.symbol)
+            self.shares_held = int(position.qty)
+        except Exception:
+            self.shares_held = 0
+
         # Data client (no feed arg here; feed is set on the request)
         self.data_client = StockHistoricalDataClient(
             self.api_key,
@@ -147,7 +153,7 @@ if __name__ == "__main__":
     symbol = "DIS"
     bot = MeanReversionBot(symbol=symbol, paper=True)
 
-    bot.load_recent_prices(days=120)
+    bot.load_recent_prices(days=200)
 
     decision = bot.trade_decision()
     print(decision)
