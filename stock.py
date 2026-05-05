@@ -166,3 +166,4 @@ if __name__ == "__main__":
         decision = bot.trade_decision()
         print(decision)
         print(f"Shares held: {bot.shares_held}")
+        print()
