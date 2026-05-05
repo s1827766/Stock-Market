@@ -25,13 +25,14 @@ class MeanReversionBot:
     def __init__(
         self,
         symbol,
-        history=100,
-        limit=0.02,
+        history=20,
+        limit=0.005,     
         max_shares=100,
         daily_trade_limit=5,
         cooldown_hours=24,
         paper=True
     ):
+
         self.symbol = symbol
         self.history = history
         self.limit = limit
@@ -108,9 +109,11 @@ class MeanReversionBot:
         mean_price = sum(self.prices[-self.history:]) / self.history
         current_price = self.prices[-1]
         deviation = (current_price - mean_price) / mean_price
-
+        
+        print(f"{self.symbol} deviation: {deviation:.4f}")
+        
         # BUY
-        if deviation < -self.limit and self.shares_held == 0:
+        if deviation < -self.limit and self.shares_held < self.max_shares:
             try:
                 order = self.execute_trade(OrderSide.BUY, self.max_shares)
                 self.shares_held = self.max_shares
