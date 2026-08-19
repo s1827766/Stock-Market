@@ -172,6 +172,16 @@ if __name__ == "__main__":
         bot.load_recent_prices(days=200)
 
         decision = bot.trade_decision()
+        from database_manager import save_signal
+
+        # decision, reason = 
+
+        save_signal(
+            ticker=symbol,
+            recorded_at=datetime.now().isoformat(),
+            decision=decision.split()[0],
+            reason=decision,
+        )
         print(decision)
         print(f"Shares held: {bot.shares_held}")
         print()
