@@ -114,6 +114,9 @@ def run_model(database_path: Path, test_fraction: float = 0.2) -> None:
 
     model = LinearRegression()
     model.fit(train_features, train_target)
+    # print("\nCoefficients:")
+    # for name, coef in zip(train_features.columns, model.coef_):
+    #     print(f"{name}: {coef}")
     predictions = model.predict(test_features)
 
     mae = mean_absolute_error(test_target, predictions)
@@ -130,7 +133,9 @@ def run_model(database_path: Path, test_fraction: float = 0.2) -> None:
     # print(f"Test R²: {r2_score(test_target, predictions):.4f}")
     # print(f"Zero-return baseline MAE: {baseline_mae:.6f} ({baseline_mae:.2%})")
 
-    print(predictions[0])
+    # print(predictions[0])
+
+    # print(model.intercept_)
 
 def main() -> None:
     parser = argparse.ArgumentParser(
