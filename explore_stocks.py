@@ -11,9 +11,9 @@ DB_PATH = Path(r"\\192.168.1.95\CS-CLASSROOM\intraday_5m.sqlite")
 DB_URI = "file:////192.168.1.95/CS-CLASSROOM/intraday_5m.sqlite?mode=ro&immutable=1"
 
 # Customize these after examining which stocks and dates are available.
-STOCK_TO_EXPLORE = "MSFT"
-START_DATE = "2026-01-01"
-END_DATE = "2026-02-01"
+STOCK_TO_EXPLORE = "WMT"
+START_DATE = "2025-01-01"
+END_DATE = "2025-02-01"
 PREVIEW_ROWS = 15
 
 
