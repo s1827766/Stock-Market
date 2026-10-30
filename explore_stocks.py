@@ -106,6 +106,21 @@ def main():
             GROUP BY symbol
         """, (STOCK_TO_EXPLORE, START_DATE, END_DATE))
 
+        query(conn, "Total MSFT bars", """
+            SELECT COUNT(*) AS total_bars
+            FROM bars_5m
+            WHERE symbol = ?
+        """, ("MSFT",))
+
+        query(conn, "Top 10 symbols by average volume", """
+            SELECT symbol,
+                   AVG(volume) AS avg_volume
+            FROM bars_5m
+            GROUP BY symbol
+            ORDER BY avg_volume DESC
+            LIMIT 10
+        """)
+
     print("\nExploration complete. Decide:")
     print("1. Which stocks will you TRAIN on, and why?")
     print("2. Which stocks will you TRADE, and why?")
