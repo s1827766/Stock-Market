@@ -1,7 +1,7 @@
 import sqlite3
 import pandas as pd
 
-conn = sqlite3.connect("model_data.db")
+conn = sqlite3.connect("linear regression/model_data.db")
 
 df = pd.read_sql_query(
     """
@@ -14,9 +14,17 @@ df = pd.read_sql_query(
 
 conn.close()
 
+df["ma5"] = df.groupby("symbol")["close"].transform(lambda x: x.rolling(5).mean())
+
+df["ma10"] = df.groupby("symbol")["close"].transform(lambda x: x.rolling(10).mean())
+
 df["ma20"] = df.groupby("symbol")["close"].transform(lambda x: x.rolling(20).mean())
 
+df["price_change"] = df.groupby("symbol")["close"].pct_change()
+
 df["future_close"] = df.groupby("symbol")["close"].shift(-12)
+
+df["future_return"] = df.groupby("symbol")["close"].shift(-12) / df["close"] - 1
 
 df = df.dropna()
 
@@ -39,7 +47,7 @@ print(train_df.head())
 print("\nTesting Sample:")
 print(test_df.head())
 
-output_conn = sqlite3.connect("regression_data.db")
+output_conn = sqlite3.connect("linear regression/regression_data.db")
 
 train_df.to_sql("training_examples", output_conn, if_exists="replace", index=False)
 
