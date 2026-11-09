@@ -15,16 +15,12 @@ df = pd.read_sql_query(
 conn.close()
 
 df["ma5"] = df.groupby("symbol")["close"].transform(lambda x: x.rolling(5).mean())
-
 df["ma10"] = df.groupby("symbol")["close"].transform(lambda x: x.rolling(10).mean())
-
 df["ma20"] = df.groupby("symbol")["close"].transform(lambda x: x.rolling(20).mean())
-
-df["price_change"] = df.groupby("symbol")["close"].pct_change()
-
+df["ma50"] = df.groupby("symbol")["close"].transform(lambda x: x.rolling(50).mean())
 df["future_close"] = df.groupby("symbol")["close"].shift(-12)
-
 df["future_return"] = df.groupby("symbol")["close"].shift(-12) / df["close"] - 1
+
 
 df = df.dropna()
 
@@ -50,7 +46,6 @@ print(test_df.head())
 output_conn = sqlite3.connect("linear regression/regression_data.db")
 
 train_df.to_sql("training_examples", output_conn, if_exists="replace", index=False)
-
 test_df.to_sql("testing_examples", output_conn, if_exists="replace", index=False)
 
 output_conn.close()
